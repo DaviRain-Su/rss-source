@@ -6,7 +6,7 @@ pub const DEFAULT_CONFIG_FILE: &str = r#"
         <title>Your Subscription List</title>
     </head>
     <body>
-        <outline text="24 ways" htmlUrl="http://24ways.org/" type="rss" xmlUrl="http://feeds.feedburner.com/24ways"/>
+        <outline text="左耳朵耗子blog" type="rss" xmlUrl="https://coolshell.cn/feed" htmlUrl="https://coolshell.cn/"/>
     </body>
 </opml>
 "#;

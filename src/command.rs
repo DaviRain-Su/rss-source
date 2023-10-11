@@ -11,14 +11,14 @@ pub enum Opt {
         #[structopt(short, long)]
         title: String,
         #[structopt(short, long)]
-        link: String,
+        html_link: String,
         #[structopt(short, long)]
-        description: String,
+        xml_link: String,
     },
-    /// Remove an item from the RSS feed by title
+    /// Remove an item from the RSS feed by xml link
     Remove {
         #[structopt(short, long)]
-        title: String,
+        xml_link: String,
     },
     /// auto generate default.xml
     Auto(Auto),

@@ -19,9 +19,9 @@ pub struct RssClient {
 }
 
 impl RssClient {
-    pub fn new(opml_str: &str) -> Self {
-        let document = OPML::from_str(opml_str).expect("Failed to parse OPML data");
-        RssClient { document }
+    pub fn new(opml_str: &str) -> anyhow::Result<Self> {
+        let document = OPML::from_str(opml_str)?;
+        Ok(RssClient { document })
     }
 
     pub fn add_subscription(&mut self, text: &str, html_url: &str, xml_url: &str) {
