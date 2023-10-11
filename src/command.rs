@@ -1,5 +1,8 @@
 use crate::constant::DEFAULT_CONFIG_FILE;
+use git2::{Cred, PushOptions, RemoteCallbacks};
+use git2::{Oid, Repository, RepositoryInitOptions, Signature};
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -25,6 +28,12 @@ pub enum Opt {
 
     /// copy default.xml file to target dir
     CopyToFile { target_path: PathBuf },
+
+    /// uploda to github
+    Upload {
+        #[structopt(short, long)]
+        message: Option<String>,
+    },
 }
 
 #[derive(Debug, StructOpt)]
@@ -78,4 +87,95 @@ pub fn copy_default_toml_to_target(target_path: PathBuf) -> anyhow::Result<()> {
     fs::copy(&source_path, &final_target_path)?;
 
     Ok(())
+}
+
+pub fn upload_to_github(message: Option<&str>) -> anyhow::Result<()> {
+    let home_path = dirs::home_dir().ok_or(anyhow::anyhow!("can't open home dir"))?;
+    let repo_path = home_path.join(".config").join("rssss");
+    ensure_git_initialized(&repo_path)?;
+    let repo = Repository::open(&repo_path)?;
+
+    // Check if the 'rssss' remote exists
+    let mut remote = match repo.find_remote("rssss") {
+        Ok(remote) => remote,
+        Err(_) => {
+            // If 'rssss' remote doesn't exist, add it
+            repo.remote("rssss", "https://github.com/DaviRain-Su/rssss.git")?;
+            // Fetch the new remote to get the updated reference
+            repo.find_remote("rssss")?
+        }
+    };
+
+    let mut index = repo.index()?;
+    index.add_path(Path::new("default.xml"))?; // replace with the relative path to default.xml in your repo
+    let oid = index.write_tree()?;
+
+    let tree = repo.find_tree(oid)?;
+    let head = repo.head()?.peel_to_commit()?;
+    let signature = Signature::now("DaviRain-Su", "davirian.yin@gmail.com")?;
+
+    let message = message.unwrap_or("Update default.xml");
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        message,
+        &tree,
+        &[&head],
+    )?;
+
+    let mut callbacks = RemoteCallbacks::new();
+
+    callbacks.credentials(|_url, username_from_url, _allowed_types| {
+        // Replace with your SSH key path and passphrase (if any)
+        let home_path = dirs::home_dir().unwrap();
+        let ssh_key_path = home_path.join(".ssh/id_rsa");
+        let username = username_from_url.unwrap_or("DaviRain-Su");
+        Cred::ssh_key(username, None, ssh_key_path.as_path(), None)
+    });
+
+    let mut push_options = PushOptions::new();
+    push_options.remote_callbacks(callbacks);
+
+    remote.push(&["refs/heads/main"], Some(&mut push_options))?;
+
+    Ok(())
+}
+
+pub fn ensure_git_initialized(repo_path: &Path) -> anyhow::Result<()> {
+    let git_dir = repo_path.join(".git");
+    if !git_dir.exists() {
+        // Initialize a new git repository if it doesn't already exist
+        let mut opts = RepositoryInitOptions::new();
+        opts.initial_head("main"); // Set the default branch to 'main'
+        opts.mkpath(true); // Make parent directories as necessary
+        Repository::init_opts(repo_path, &opts)?;
+    }
+    Ok(())
+}
+
+pub fn create_initial_commit(repo: &Repository) -> anyhow::Result<Oid> {
+    let mut index = repo.index()?;
+
+    // Add the default.xml file to the index
+    // Assumes default.xml is in the root of the repository
+    index.add_path(Path::new("default.xml"))?;
+
+    // Write the index to create a tree object
+    let oid = index.write_tree()?;
+    let tree = repo.find_tree(oid)?;
+
+    let signature = Signature::now("DaviRain-Su", "davirian.yin@gmail.com")?;
+
+    let message = "Initial commit";
+
+    let oid = repo.commit(Some("HEAD"), &signature, &signature, message, &tree, &[])?;
+
+    // Create a new branch named 'main' pointing to the initial commit
+    repo.branch("main", &repo.find_commit(oid)?, false)?;
+
+    // Update HEAD to point to the 'main' branch
+    repo.reference_symbolic("HEAD", "refs/heads/main", true, "Initial HEAD")?;
+
+    Ok(oid)
 }

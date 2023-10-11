@@ -18,3 +18,4 @@ structopt = "0.3.26"
 xml = "0.8.10"
 serde = { version = "1.0", features = ["derive"] }
 opml = "1.1.5"
+git2 = "0.18.1"

@@ -46,6 +46,14 @@ fn main() -> anyhow::Result<()> {
         },
 
         Opt::CopyToFile { target_path } => command::copy_default_toml_to_target(target_path)?,
+
+        Opt::Upload { message } => {
+            println!("for Now it's not have support!!!");
+
+            if let Err(e) = command::upload_to_github(message.as_deref()) {
+                eprintln!("Error uploading to GitHub: {}", e);
+            }
+        }
     }
 
     Ok(())
