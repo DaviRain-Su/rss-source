@@ -1,6 +1,6 @@
 [package]
 name = "rssss"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["davirian.yin@gmail.com"]
 description = "Rsss is a tools to manager your rss sources"
